@@ -232,6 +232,31 @@ def test_fee_does_not_exceed_cap():
     outcome = calculate_late_fee_for_book("111111", 1)
     assert "fee_amount" in outcome
 
+#additional ones
+def test_fee_on_exact_due_date(monkeypatch):
+    """
+    returning a book on the same exact due date should not have any late fee so we have to make sure the system does not count the due date as overdue
+    """
+    from database import get_db_connection
+    patron_id = "606060"
+    book_id = 1
+
+    #borrow the book first
+    borrow_book_by_patron(patron_id, book_id)
+
+    #adjust borrow record so due_date is = now
+    conn = get_db_connection()
+    conn.execute('UPDATE borrow_records SET due_date = DATE("now") WHERE patron_id = ? AND book_id = ?', (patron_id, book_id))
+    conn.commit()
+    conn.close()
+
+    #return it on the due date
+    return_book_by_patron(patron_id, book_id)
+    fee_info = calculate_late_fee_for_book(patron_id, book_id)
+
+    assert fee_info["fee_amount"] == 0.0
+    assert "on time" in fee_info["status"].lower()
+
 #r6-----------------------------------------------------------------------------------------------------------------------------------------------
 
 def test_title_search_finds_partial_match():
@@ -281,5 +306,29 @@ def test_status_includes_history_field():
     """Borrowing history should be part of the status structure"""
     report = get_patron_status_report("555555")
     assert isinstance(report, dict)
+#additional one
+def test_patron_status_multiple_borrows():
+    """
+    parton with multipple borrows should see all their active borrowed books in the status report and so this tests
+    if the status report correctly lists multiple borrowed books
+    """
+    patron_id = "707070"
+    #so first find atleast two boooks with the available copies
+    books = [b for b in get_all_books() if b["available_copies"] > 0][:2]
+    if len(books) < 2:
+        pytest.skip("Need at least 2 books to run this test")
+
+    #now borrow both books
+    for b in books:
+        borrow_book_by_patron(patron_id, b["id"])
+
+    #get the patrons status report
+    report = get_patron_status_report(patron_id)
+    borrowed_ids = [b["book_id"] for b in report["borrowed_books"]]
+
+    #make sure both boooks are listed in their borrowed books
+    assert len(report["borrowed_books"]) >= 2
+    for b in books:
+        assert b["id"] in borrowed_ids
 
 #done
