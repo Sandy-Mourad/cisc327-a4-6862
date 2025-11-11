@@ -3,6 +3,9 @@
 ## Overview
 
 This project contains a partial implementation of a Flask-based Library Management System with SQLite database, designed for CISC 327 (Software Quality Assurance) coursework.
+![run-tests](https://github.com/Sandy-Mourad/cisc327-a3-6862/actions/workflows/tests.yml/badge.svg?branch=main)
+[![codecov](https://codecov.io/gh/Sandy-Mourad/cisc327-a3-6862/branch/main/graph/badge.svg)](https://app.codecov.io/gh/Sandy-Mourad/cisc327-a3-6862)
+
 
 Students are provided with:
 
